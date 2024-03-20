@@ -1,14 +1,21 @@
-﻿
-using System.Threading.Channels;
+﻿using System.Threading.Channels;
 
 namespace DocumentProcessing
 {
     internal class Program
     {
-        public static int  TaskCount = 16;        
+        public static int  TaskCount = 1;    
+        
+        public static void ReadLicenceKey()
+        {
+            var license = File.ReadAllText(@$"..\..\..\Assets\SyncFusionLicense.txt");
+            Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(license);
+        }
 
         static void Main(string[] args)
         {
+            ReadLicenceKey();
+
             UnboundedChannelOptions options = new UnboundedChannelOptions
             {
                 AllowSynchronousContinuations = true,
@@ -18,9 +25,9 @@ namespace DocumentProcessing
             var channel = Channel.CreateUnbounded<string>(options);
             var taskList = new List<Task>();
 
-            Console.WriteLine("Veri İşleme Başlıyor!");
+            Console.WriteLine("Document Processing is Starting...!");
 
-            var taskReader = Task.Factory.StartNew(() => FileReader(channel.Writer) , 
+            var taskReader = Task.Factory.StartNew(() => FileReader(channel) , 
                 CancellationToken.None, 
                 TaskCreationOptions.DenyChildAttach, 
                 TaskScheduler.Default);
@@ -31,7 +38,7 @@ namespace DocumentProcessing
             {
                 var taskConsumer = Task.Factory.StartNew(() =>
                 {
-                    IProcessDocument document = new PdfDocument(channel.Reader);
+                    IProcessDocument document = new WordDocuments(channel.Reader);
                     document.ExtractText();
                 },
                     CancellationToken.None,
@@ -43,24 +50,35 @@ namespace DocumentProcessing
 
             Task.WaitAll(taskList.ToArray());
 
-            Console.WriteLine("Veri İşleme Bitti...");
+            Console.WriteLine("Document Processing Finished...");
         }
 
-        private static void FileReader(ChannelWriter<string> writingChannel)
+        private static void FileReader(Channel<string> channel)
         {
-            var files = Directory.GetFiles($@"..\..\..\Assets\PdfFiles\", "*.pdf", SearchOption.TopDirectoryOnly);
-            foreach (var filePath in files)
+            var channelWriter = channel.Writer;
+            var channelReader = channel.Reader;
+
+            while (true)
             {
-                var success = writingChannel.TryWrite(filePath);
-                if (false == success)
+                var files = Directory.GetFiles($@"..\..\..\Assets\", "*.*", SearchOption.AllDirectories);
+                foreach (var filePath in files)
                 {
-                    Console.WriteLine(@$"Channel Writing Failed...{filePath}");
+                    var success = channelWriter.TryWrite(filePath);
+                    if (false == success)
+                    {
+                        Console.WriteLine(@$"Channel Writing Failed...{filePath}");
+                    }
+                }
+
+                while (channelReader.Count > files.Length/2)
+                {
+                    Thread.Sleep(10);
                 }
             }
 
-            Thread.Sleep(TimeSpan.FromSeconds(10));       
+            Thread.Sleep(TimeSpan.FromSeconds(10));
 
-            writingChannel.Complete();
+            channelWriter.Complete();
         }
     }
 }
