@@ -4,7 +4,7 @@ namespace DocumentProcessing
 {
     internal class Program
     {
-        public static int  TaskCount = 1;    
+        public static int  TaskCount = 8;    
         
         public static void ReadLicenceKey()
         {
