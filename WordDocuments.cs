@@ -37,8 +37,8 @@ namespace DocumentProcessing
                         continue;
                     }
                     sw.Restart();
-                    FileStream fileStreamPath = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                    //Opens an existing document from file system through constructor of WordDocument class
+                    using FileStream fileStreamPath = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                    // Opens an existing document from file system through constructor of WordDocument class
                     using (WordDocument document = new WordDocument(fileStreamPath, FormatType.Automatic))
                     {
                         //Gets the document text

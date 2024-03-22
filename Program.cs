@@ -60,7 +60,7 @@ namespace DocumentProcessing
 
             while (true)
             {
-                var files = Directory.GetFiles($@"..\..\..\Assets\", "*.*", SearchOption.AllDirectories);
+                var files = Directory.GetFiles($@"..\..\..\Assets\WordFiles\", "*.*", SearchOption.AllDirectories);
                 foreach (var filePath in files)
                 {
                     var success = channelWriter.TryWrite(filePath);
